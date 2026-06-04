@@ -57,6 +57,22 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+class HybridRFXGB:
+    def __init__(self, rf_model, xgb_model, rf_weight=0.5, xgb_weight=0.5):
+        self.rf_model = rf_model
+        self.xgb_model = xgb_model
+        self.rf_weight = rf_weight
+        self.xgb_weight = xgb_weight
+
+    def fit(self, X, y):
+        self.rf_model.fit(X, y)
+        self.xgb_model.fit(X, y)
+        return self
+
+    def predict(self, X):
+        rf_pred = self.rf_model.predict(X)
+        xgb_pred = self.xgb_model.predict(X)
+        return (self.rf_weight * rf_pred) + (self.xgb_weight * xgb_pred)
 
 @st.cache_resource
 def load_model():
@@ -146,6 +162,11 @@ try:
         feature_importance = joblib.load("feature_importance.pkl")
     except:
         feature_importance = None
+    
+    try:
+        best_model_name = joblib.load("best_model_name.pkl")
+    except:
+        best_model_name = "Hybrid RF + XGBoost"
 
 except Exception as e:
     st.error(f"Error loading files: {e}")
@@ -209,7 +230,7 @@ with st.sidebar:
     predict_btn = st.button("🔮 Predict Water Quality", use_container_width=True)
 
 
-colA, colB, colC = st.columns(3)
+colA, colB, colC, colD = st.columns(4)
 
 with colA:
     st.metric("Dataset Rows", len(data))
@@ -219,6 +240,9 @@ with colB:
 
 with colC:
     st.metric("Year Range", f"{int(data['year'].min())} - {int(data['year'].max())}")
+
+with colD:
+    st.metric("Best Model", best_model_name)
 
 
 st.divider()
